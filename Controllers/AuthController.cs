@@ -107,5 +107,12 @@ namespace TokenApi.Controllers
         {
             return Ok(new { Message = "This is protected user data", User = User.Identity?.Name });
         }
+
+        [Authorize(Roles = "Admin,User")]
+        [HttpGet("protected3")]
+        public IActionResult Protected3()
+        {
+            return Ok(new { Message = "This is protected Admin/User data", User = User.Identity?.Name, Role = User.Identity?.IsAuthenticated });
+        }
     }
 }
