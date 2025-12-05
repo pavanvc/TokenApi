@@ -28,18 +28,42 @@ namespace TokenApi.Controllers
             // TODO: Replace this with real user validation (DB, Identity, etc.)
             if (!ValidateUser(model.Username, model.Password))
                 return Unauthorized("Invalid credentials");
+            if (model.Username == "admin")
+            {
+                var tokenString = GenerateJwtToken(model.Username, "Admin");
+                return Ok(new { token = tokenString });
+            }
+            else if (model.Username == "user")
+            {
+                var tokenString = GenerateJwtToken(model.Username, "User");
+                return Ok(new { token = tokenString });
+            }
+            else
+            {
+                return Unauthorized("Invalid User");
+            }
 
-            var tokenString = GenerateJwtToken(model.Username);
-            return Ok(new { token = tokenString });
+
+           
         }
 
         private bool ValidateUser(string username, string password)
         {
             // Demo only — replace with real checks
-            return username == "pavan" && password == "123";
+            if (username == "user") {
+                return username == "user" && password == "123"; }
+
+            else if  (username == "admin") {
+                return username == "admin" && password == "123";
+            }
+            else
+            {
+                return false;
+            }
+
         }
 
-        private string GenerateJwtToken(string username)
+        private string GenerateJwtToken(string username,string role)
         {
             var jwtSection = _config.GetSection("Jwt");
             var secret = jwtSection["Key"]!;
@@ -53,7 +77,8 @@ namespace TokenApi.Controllers
             var claims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, username),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.Role, role)  // ROLE CLAIM
             // add roles: new Claim(ClaimTypes.Role, "Admin")
         };
 
@@ -68,19 +93,19 @@ namespace TokenApi.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpGet("protected")]
         public IActionResult Protected()
         {
-            return Ok(new { Message = "This is protected data", User = User.Identity?.Name });
+            return Ok(new { Message = "This is protected admin data", User = User.Identity?.Name, Role= User.Identity?.AuthenticationType });
         }
 
 
-        
+        [Authorize(Roles = "User")]
         [HttpGet("protected2")]
         public IActionResult Protected2()
         {
-            return Ok(new { Message = "This is protected data", User = User.Identity?.Name });
+            return Ok(new { Message = "This is protected user data", User = User.Identity?.Name });
         }
     }
 }
