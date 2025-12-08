@@ -15,10 +15,14 @@ namespace TokenApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _config;
+        private readonly string _connectionString; // Store the connection string
+        private readonly UserRepository _userRepository;
 
         public AuthController(IConfiguration config)
         {
             _config = config;
+            _connectionString = _config.GetConnectionString("DefaultConnection");
+            _userRepository = new UserRepository(config);
         }
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginModel model)
@@ -26,22 +30,15 @@ namespace TokenApi.Controllers
             if (model is null) return BadRequest("Invalid client request");
 
             // TODO: Replace this with real user validation (DB, Identity, etc.)
-            if (!ValidateUser(model.Username, model.Password))
+            string userRole = _userRepository.GetUserRoleIfValid(model.Username, model.Password, _connectionString);
+
+            if (userRole is null)
+            {
                 return Unauthorized("Invalid credentials");
-            if (model.Username == "admin")
-            {
-                var tokenString = GenerateJwtToken(model.Username, "Admin");
-                return Ok(new { token = tokenString });
             }
-            else if (model.Username == "user")
-            {
-                var tokenString = GenerateJwtToken(model.Username, "User");
-                return Ok(new { token = tokenString });
-            }
-            else
-            {
-                return Unauthorized("Invalid User");
-            }
+            var tokenString = GenerateJwtToken(model.Username, userRole);
+            return Ok(new { token = tokenString });
+             
 
 
            
